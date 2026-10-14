@@ -1,0 +1,13 @@
+[package]
+name = "hangang-runtime"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Shared bounded server transport for Hangang World"
+[dependencies]
+anyhow = "1"
+tokio = { version = "1", features = ["net", "io-util", "sync"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tonic = { version = "0.14.6", features = ["tls-ring"] }
+[dev-dependencies]
+tempfile = "3"
