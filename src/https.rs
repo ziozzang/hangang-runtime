@@ -54,11 +54,11 @@ pub async fn serve_https(
             _=&mut shutdown=>break,
             Some(_)=tasks.join_next(),if !tasks.is_empty()=>{},
             accepted=listener.accept()=>{
-                let (socket,_)=accepted?;
+                let (socket,peer)=accepted?;
                 let Ok(permit)=capacity.clone().try_acquire_owned() else {continue;};
                 socket.set_nodelay(true)?;
                 let acceptor=tokio_rustls::TlsAcceptor::from(config.clone());
-                let router=router.clone();
+                let router=router.clone().layer(axum::Extension(axum::extract::ConnectInfo(peer)));
                 tasks.spawn(async move {
                     let _permit=permit;
                     if let Ok(Ok(stream))=timeout(Duration::from_secs(3),acceptor.accept(socket)).await {
