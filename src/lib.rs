@@ -119,3 +119,6 @@ mod tests {
 
 mod https;
 pub use https::{AuthenticatedTlsPeer, serve_https, tls_config};
+
+mod connections;
+pub use connections::serve_connections;
