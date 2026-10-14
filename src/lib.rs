@@ -116,3 +116,6 @@ mod tests {
         assert!(error.to_string().contains("exceeds bound"));
     }
 }
+
+mod https;
+pub use https::{serve_https, tls_config};
