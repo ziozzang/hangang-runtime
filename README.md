@@ -2,6 +2,13 @@
 
 Shared server infrastructure for Hangang World. Identity, authorization and network decisions remain owned by Hopae, Pumgye and Sumunjang.
 
+The default is a statically linked Rust library, pinned and compiled into each
+server executable. The four servers remain independently deployable and scalable;
+sharing this library adds no request-path network hop. Linux release binaries
+default to musl and must pass static ELF verification. Updating the runtime requires
+rebuilding and qualifying each consumer. Database-backed in-memory policy snapshots
+and domain-owned provider extensions can still change at runtime.
+
 Initial scope: mandatory gRPC mTLS, bounded TLS files, connection admission (2,048), per-connection concurrency/streams (64), header limits (8 KiB), request timeout (1 second), and TCP_NODELAY. Domain handlers retain credential roles, global decision admission, message-size limits and snapshot evaluation.
 
 No policy, SQL, provider or ontology ownership. Native codecs, supervision, listener handover and telemetry remain future extractions. This library preserves independent server deployment.
