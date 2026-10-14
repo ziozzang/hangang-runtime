@@ -118,4 +118,4 @@ mod tests {
 }
 
 mod https;
-pub use https::{serve_https, tls_config};
+pub use https::{AuthenticatedTlsPeer, serve_https, tls_config};

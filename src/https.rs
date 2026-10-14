@@ -40,6 +40,10 @@ pub fn tls_config(cert: &Path, key: &Path, ca: &Path, alpn: &[&[u8]]) -> Result<
     Ok(Arc::new(config))
 }
 
+/// Server-injected proof of a successfully authenticated TLS client certificate.
+#[derive(Clone, Debug)]
+pub struct AuthenticatedTlsPeer;
+
 pub async fn serve_https(
     listener: TcpListener,
     config: Arc<ServerConfig>,
@@ -62,6 +66,8 @@ pub async fn serve_https(
                 tasks.spawn(async move {
                     let _permit=permit;
                     if let Ok(Ok(stream))=timeout(Duration::from_secs(3),acceptor.accept(socket)).await {
+                        if stream.get_ref().1.peer_certificates().is_none_or(|certs| certs.is_empty()) { return; }
+                        let router=router.layer(axum::Extension(AuthenticatedTlsPeer));
                         let mut builder=hyper::server::conn::http1::Builder::new();
                         builder.timer(TokioTimer::new()).header_read_timeout(Duration::from_secs(5)).max_headers(64).max_buf_size(32*1024);
                         let _=timeout(Duration::from_secs(300),builder.serve_connection(TokioIo::new(stream),TowerToHyperService::new(router))).await;
