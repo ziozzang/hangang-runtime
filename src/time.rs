@@ -172,6 +172,15 @@ impl ReceiverClock {
     pub fn retire(&self) {
         self.domain.active.store(false, Ordering::Release);
     }
+    /// Read this active process's positive BOOTTIME ticks with one backend read.
+    /// Numeric infrastructure only: not UTC, a remote observation or permission.
+    /// Keep generation/owner identity separately; failures have no weaker fallback.
+    pub fn sample_ticks(&self) -> Result<u64, TimeError> {
+        self.domain.current()?;
+        let (_, ticks) = self.domain.sample()?;
+        self.domain.current()?;
+        Ok(ticks)
+    }
     pub fn begin_exchange(&self) -> Result<ExchangeStart, TimeError> {
         self.domain.current()?;
         let (nanos, ticks) = self.domain.sample()?;

@@ -45,3 +45,12 @@ budgets, including time spent awaiting authentication. It has no numeric or
 serialized constructor and no weaker-clock fallback. Callers must charge the
 original budget at every relevant boundary; adding this primitive alone does not
 make existing source adapters suspend-safe.
+
+
+`ReceiverClock::sample_ticks` reads active positive process-local BOOTTIME ticks
+using one backend read, without constructing an exchange or cloning its seal.
+It rechecks retirement after the read and refuses read/overflow failures. This
+avoids two clock reads when native adapters need their own source coordinate;
+it is numeric infrastructure and cannot authenticate a remote clock or grant a
+permission. Deterministic tests cover suspend, flooring, failures, overflow and
+retirement overlapping the read.

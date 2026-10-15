@@ -389,3 +389,71 @@ fn restricting_retired_tokens_never_reactivates_admission() {
     assert_eq!(extended.ticks(), 40);
     assert_eq!(extended.elapsed(&clock), Ok(false));
 }
+
+#[test]
+fn direct_tick_sample_preserves_floor_suspend_and_refuses_invalid_clock() {
+    let (source, clock) = Controlled::new([31; 16]);
+    assert_eq!(clock.sample_ticks(), Ok(1));
+    source.elapsed_ns(999_999);
+    assert_eq!(clock.sample_ticks(), Ok(1));
+    source.elapsed_ns(1_000_000);
+    assert_eq!(clock.sample_ticks(), Ok(2));
+    source.elapsed_ns(2_000_000_000);
+    assert_eq!(clock.sample_ticks(), Ok(2001));
+    source.failing(true);
+    assert_eq!(clock.sample_ticks(), Err(TimeError::ClockRead));
+    source.failing(false);
+    source.now.store(ORIGIN_NS - 1, Ordering::Release);
+    assert_eq!(clock.sample_ticks(), Err(TimeError::ClockRead));
+    clock.retire();
+    assert_eq!(clock.sample_ticks(), Err(TimeError::Retired));
+}
+
+#[test]
+fn direct_tick_sample_uses_one_read_and_rechecks_retirement_after_it() {
+    let reads = Arc::new(AtomicUsize::new(0));
+    let domain = Arc::new(std::sync::Mutex::new(None::<std::sync::Weak<Domain>>));
+    let read_count = reads.clone();
+    let captured = domain.clone();
+    let clock = ReceiverClock::from_source(
+        [32; 16],
+        Source::Controlled(Arc::new(move || {
+            read_count.fetch_add(1, Ordering::Relaxed);
+            if let Some(d) = captured
+                .lock()
+                .unwrap()
+                .as_ref()
+                .and_then(std::sync::Weak::upgrade)
+            {
+                d.active.store(false, Ordering::Release);
+            }
+            Ok(0)
+        })),
+    )
+    .unwrap();
+    assert_eq!(reads.load(Ordering::Relaxed), 1);
+    assert_eq!(clock.sample_ticks(), Ok(1));
+    assert_eq!(reads.load(Ordering::Relaxed), 2);
+    *domain.lock().unwrap() = Some(Arc::downgrade(&clock.domain));
+    assert_eq!(clock.sample_ticks(), Err(TimeError::Retired));
+    assert_eq!(reads.load(Ordering::Relaxed), 3);
+    assert_eq!(clock.sample_ticks(), Err(TimeError::Retired));
+    assert_eq!(reads.load(Ordering::Relaxed), 3);
+}
+
+#[test]
+fn direct_tick_sample_refuses_numeric_overflow() {
+    let reads = AtomicUsize::new(0);
+    let clock = ReceiverClock::from_source(
+        [33; 16],
+        Source::Controlled(Arc::new(move || {
+            Ok(if reads.fetch_add(1, Ordering::Relaxed) == 0 {
+                0
+            } else {
+                u128::from(MAXIMUM) * NANOS_PER_MS
+            })
+        })),
+    )
+    .unwrap();
+    assert_eq!(clock.sample_ticks(), Err(TimeError::Overflow));
+}
