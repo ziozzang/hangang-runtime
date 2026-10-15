@@ -24,3 +24,24 @@ of the owning server also aborts its tasks. Handlers own TLS, native framing,
 credentials, per-connection lifetime and domain semantics. Management HTTPS now
 uses this primitive; native listener adoption remains a separate consumer gate.
 Actual socket tests cover capacity retention/reuse, shutdown and owner cancellation.
+
+`time::ReceiverClock` adds Linux `CLOCK_BOOTTIME` infrastructure for observed
+contracts. Fixed-origin ticks include host suspend and ignore UTC clock steps;
+unsupported platforms/read failures refuse without a different clock fallback.
+Native startup supplies a fresh nonzero CSPRNG generation. An additional private
+instance seal rejects tokens from another clock even with the same generation.
+Exchange samples bind separate `LocalDeadline` and `ReplayRetention` values;
+revalidation narrows admission and extends retention. Admission retirement does
+not authorize nonce deletion. There is no request-path mutex, heap allocation,
+wall-clock read or SQL. Test clock injection is private and test-only.
+
+These types are numeric infrastructure, not authenticated source reports or
+permission capabilities. They do not restore persisted monotonic coordinates,
+fence a former distributed owner, qualify clock-rate assumptions or implement a
+replay ledger. Native receipt/client/ledger adoption remains a consumer gate.
+
+`time::ElapsedStamp` supplies a separate opaque BOOTTIME age for source proof
+budgets, including time spent awaiting authentication. It has no numeric or
+serialized constructor and no weaker-clock fallback. Callers must charge the
+original budget at every relevant boundary; adding this primitive alone does not
+make existing source adapters suspend-safe.

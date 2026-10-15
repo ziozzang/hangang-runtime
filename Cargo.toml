@@ -15,5 +15,7 @@ anyhow = "1"
 tokio = { version = "1", features = ["net", "io-util", "sync", "rt", "time", "macros"] }
 tokio-stream = { version = "0.1", features = ["net"] }
 tonic = { version = "0.14.6", features = ["tls-ring"] }
+[target.'cfg(target_os = "linux")'.dependencies]
+rustix = { version = "1.1.5", features = ["time"] }
 [dev-dependencies]
 tempfile = "3"
