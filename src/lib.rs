@@ -1,5 +1,6 @@
 //! Shared bounded transport; domain decisions stay in their owning modules.
 pub mod time;
+pub mod unary_ingress;
 use anyhow::{Result, ensure};
 use std::{
     io,
